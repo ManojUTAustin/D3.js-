@@ -138,7 +138,7 @@
             var admheight = 400 - admmargin.top - admmargin.bottom;
 
             // Create SVG element
-            var svg = d3.select("#admissions-chart")
+            var svg2 = d3.select("#admissions-chart")
                 .attr("width", admwidth + admmargin.left + admmargin.right)
                 .attr("height", admheight + admmargin.top + admmargin.bottom)
                 .append("g")
@@ -155,7 +155,7 @@
                 .padding(0.1);
 
             // Bar
-            svg.selectAll(".bar")
+            svg2.selectAll(".bar")
                 .data(admissionTypeData)
                 .enter().append("rect")
                 .attr("class", "bar")
@@ -177,18 +177,18 @@
                 });
 
             // x-axis 
-            svg.append("g")
+            svg2.append("g")
                 .attr("class", "axis")
                 .attr("transform", "translate(0," + admheight + ")")
                 .call(d3.axisBottom(xScale));
 
             // y-axis 
-            svg.append("g")
+            svg2.append("g")
                 .attr("class", "axis")
                 .call(d3.axisLeft(yScale));
 
             // Chart title 
-            svg.append("text")
+            svg2.append("text")
                 .attr("class", "chart-title")
                 .attr("x", admwidth / 2)
                 .attr("y", -admmargin.top / 2)
