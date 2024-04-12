@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIMIC-III Data Visualization</title>
+    <!-- Load D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* CSS  */
+        .bar {
+            fill: steelblue;
+        }
+        .bar:hover {
+            fill: orange;
+        }
+        .axis {
+            font-size: 12px;
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 6px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 1px solid #aaa;
+            border-radius: 5px;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .chart-title {
+            font-size: 18px;
+            font-weight: bold;
+            text-anchor: middle;
+        }
+    </style>
+</head>
+<body>
+    <h1>MIMIC-III Data Visualization</h1>
+    <svg id="gender-chart"></svg>
+    <svg id="admissions-chart"></svg>
+
+    <!-- Tooltip element -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Load data from CSV file
+        Promise.all([
+            d3.csv("PATIENTS.csv"),
+            d3.csv("ADMISSIONS.csv")
+        ]).then(function(data) {
+            var patientsData = data[0];
+            var admissionsData = data[1];
+            
+
+            // Chart-1 Gender distribution
+            // Calculate count of each gender
+            var genderCounts = d3.rollup(data[0], v => v.length, d => d.GENDER);
+
+            // Converting data to array of objects
+            var genderData = Array.from(genderCounts, ([GENDER, count]) => ({ GENDER, count }));
+
+            // SVG Margins and width
+            var margin = { top: 60, right: 60, bottom: 60, left: 60 };
+            var width = 800 - margin.left - margin.right;
+            var height = 400 - margin.top - margin.bottom;
+
+            // SVG element
+            var svg = d3.select("#gender-chart")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            // Scales
+            var xScale = d3.scaleBand()
+                .domain(genderData.map(d => d.GENDER))
+                .range([0, width])
+                .padding(0.1);
+
+            var yScale = d3.scaleLinear()
+                .domain([0, d3.max(genderData, d => d.count)])
+                .nice()
+                .range([height, 0]);
+
+            // Bars
+            svg.selectAll(".bar")
+                .data(genderData)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => xScale(d.GENDER))
+                .attr("width", xScale.bandwidth())
+                .attr("y", d => yScale(d.count))
+                .attr("height", d => height - yScale(d.count))
+                .on("mouseover", function(event, d) {
+                    // Show tooltip
+                    d3.select("#tooltip")
+                        .style("opacity", 1)
+                        .html(`Gender: ${d.GENDER}<br/>Count of Patients: ${d.count}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    // Hide tooltip
+                    d3.select("#tooltip")
+                        .style("opacity", 0);
+                });
+
+            // x-axis
+            svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(xScale));
+
+            // y-axis
+            svg.append("g")
+                .attr("class", "axis")
+                .call(d3.axisLeft(yScale));
+
+            // Chart title
+            svg.append("text")
+                .attr("class", "chart-title")
+                .attr("x", width / 2)
+                .attr("y", -margin.top / 2)
+                .attr("text-anchor", "middle")
+                .text("Gender Distribution");
+
+            
+
+            // Chart -2 Horizontal Bar Chart for Admissions
+            var admissionTypeCounts = d3.rollup(admissionsData, v => new Set(v.map(d => d.SUBJECT_ID)).size, d => d.ADMISSION_TYPE);
+
+            var admissionTypeData = Array.from(admissionTypeCounts, ([ADMISSION_TYPE, count]) => ({ ADMISSION_TYPE, count }));
+
+            // SVG dimensions
+            var admmargin = { top: 60, right: 60, bottom: 60, left: 200 };
+            var admwidth = 600 - admmargin.left - admmargin.right;
+            var admheight = 400 - admmargin.top - admmargin.bottom;
+
+            // Create SVG element
+            var svg = d3.select("#admissions-chart")
+                .attr("width", admwidth + admmargin.left + admmargin.right)
+                .attr("height", admheight + admmargin.top + admmargin.bottom)
+                .append("g")
+                .attr("transform", "translate(" + admmargin.left + "," + admmargin.top + ")");
+
+            // Scales
+            var xScale = d3.scaleLinear()
+                .domain([0, d3.max(admissionTypeData, d => d.count)])
+                .range([0, admwidth]);
+
+            var yScale = d3.scaleBand()
+                .domain(admissionTypeData.map(d => d.ADMISSION_TYPE))
+                .range([admheight, 0])
+                .padding(0.1);
+
+            // Bar
+            svg.selectAll(".bar")
+                .data(admissionTypeData)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("y", d => yScale(d.ADMISSION_TYPE))
+                .attr("height", yScale.bandwidth())
+                .attr("x", 0)
+                .attr("width", d => xScale(d.count))
+                .on("mouseover", function(event, d) {
+                    // Show tooltip
+                    d3.select("#tooltip")
+                        .style("opacity", 1)
+                        .html(`Admission Type: ${d.ADMISSION_TYPE}<br/>Count of Patients: ${d.count}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    d3.select("#tooltip")
+                        .style("opacity", 0);
+                });
+
+            // x-axis 
+            svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0," + admheight + ")")
+                .call(d3.axisBottom(xScale));
+
+            // y-axis 
+            svg.append("g")
+                .attr("class", "axis")
+                .call(d3.axisLeft(yScale));
+
+            // Chart title 
+            svg.append("text")
+                .attr("class", "chart-title")
+                .attr("x", admwidth / 2)
+                .attr("y", -admmargin.top / 2)
+                .attr("text-anchor", "middle")
+                .text("Admission Type Distribution");
+
+        }).catch(function(error) {
+            console.log("Error loading the data: " + error);
+        });
+
+    </script>
+</body>
+</html>
+
+<!-- Run using -> cmd > python -m http.server on http://localhost:8000/index.html -->
